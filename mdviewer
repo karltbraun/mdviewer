@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# mdviewer - Wrapper for MDViewer-ktb
+# Usage: mdviewer <file.md>
+#        cat file.md | mdviewer
+
+PROJECT_DIR="/Users/karl/Development/KTB/MDViewer-ktb"
+if command -v uv >/dev/null 2>&1; then
+    PYTHON_RUNNER="uv run"
+else
+    # Fallback to venv python if uv is not available
+    if [ -x "$PROJECT_DIR/.venv/bin/python" ]; then
+        PYTHON_RUNNER="$PROJECT_DIR/.venv/bin/python"
+    elif [ -x "$PROJECT_DIR/.venv/bin/python3" ]; then
+        PYTHON_RUNNER="$PROJECT_DIR/.venv/bin/python3"
+    elif [ -x "$PROJECT_DIR/.venv/bin/python3.14" ]; then
+        PYTHON_RUNNER="$PROJECT_DIR/.venv/bin/python3.14"
+    else
+        echo "No suitable Python binary found in $PROJECT_DIR/.venv/bin and uv not available" >&2
+        exit 1
+    fi
+fi
+MAIN_PY="$PROJECT_DIR/src/main.py"
+
+if [ -t 0 ]; then
+    # No data piped in
+    if [ $# -eq 1 ]; then
+        TARGET_FILE="$1"
+        # Convert to absolute path
+        ABS_TARGET_FILE="$(cd "$(dirname -- "$TARGET_FILE")" 2>/dev/null && pwd)/$(basename -- "$TARGET_FILE")"
+        # If the file does not exist at that path, try resolving from the current working directory
+        if [ ! -f "$ABS_TARGET_FILE" ]; then
+            ABS_TARGET_FILE="$(pwd)/$TARGET_FILE"
+        fi
+        exec $PYTHON_RUNNER "$MAIN_PY" "$ABS_TARGET_FILE"
+    else
+        echo "Usage: $0 <file.md> or cat file.md | $0" >&2
+        exit 1
+    fi
+else
+    # Data is being piped in
+    TMPFILE=$(mktemp /tmp/mdviewer-stdin-XXXXXX.md)
+    cat - > "$TMPFILE"
+    $PYTHON_RUNNER "$MAIN_PY" "$TMPFILE"
+    rm -f "$TMPFILE"
+fi

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^/Users/karl/Development/KTB/MDViewer-ktb/\\.venv/bin/python src/main\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
